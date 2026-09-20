@@ -317,9 +317,10 @@ elif page == "Analyze Reviews":
             )
 
             text_columns = [
-                col
-                for col in df.columns
-                if df[col].dtype == "object"
+                         col
+                       for col in df.columns
+                       if df[col].dtype == "object"
+                       or pd.api.types.is_string_dtype(df[col])
             ]
 
             if text_columns:
