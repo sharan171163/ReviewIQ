@@ -463,105 +463,139 @@ elif page == "Dashboard":
 
     st.header("📊 ReviewIQ Dashboard")
 
-    dashboard_file = (
-        RESULTS_PATH /
-        "reviewiq_dashboard_dataset.parquet"
-    )
+    # --------------------------------------------------------
+    # CHECK FOR ANALYZED UPLOADED DATA
+    # --------------------------------------------------------
 
-    if dashboard_file.exists():
+    if "analysis_df" not in st.session_state:
 
-        dashboard_df = pd.read_parquet(
-            dashboard_file
+        st.info(
+            "📁 No analyzed review data available yet."
         )
 
+        st.write(
+            "Go to **Analyze Reviews**, upload a CSV file, "
+            "select the review text column, and click "
+            "**Analyze CSV**."
+        )
+
+    else:
+
+        # ----------------------------------------------------
+        # LOAD THE USER'S UPLOADED DATA
+        # ----------------------------------------------------
+
+        dashboard_df = st.session_state["analysis_df"].copy()
+
+        # ----------------------------------------------------
+        # CONVERT SENTIMENT LABELS
+        # ----------------------------------------------------
+
+        label_map = {
+            0: "Negative",
+            1: "Neutral",
+            2: "Positive",
+            "0": "Negative",
+            "1": "Neutral",
+            "2": "Positive"
+        }
+
+        dashboard_df["predicted_sentiment"] = (
+            dashboard_df["predicted_sentiment"]
+            .map(label_map)
+            .fillna(dashboard_df["predicted_sentiment"])
+        )
+
+        # ----------------------------------------------------
+        # DASHBOARD STATUS
+        # ----------------------------------------------------
+
         st.success(
-            f"Dashboard dataset loaded — "
+            f"Dashboard showing your uploaded data — "
             f"{len(dashboard_df):,} reviews"
         )
 
-         # Convert numeric sentiment labels to readable names
-        label_map = {
-        0: "Negative",
-        1: "Neutral",
-        2: "Positive",
-       "0": "Negative",
-       "1": "Neutral",
-       "2": "Positive"
-        }
-
-       dashboard_df["predicted_sentiment"] = (
-       dashboard_df["predicted_sentiment"]
-       .map(label_map)
-       .fillna(dashboard_df["predicted_sentiment"])
-        )
+        # ----------------------------------------------------
+        # SENTIMENT COUNTS
+        # ----------------------------------------------------
 
         sentiment_counts = (
-        dashboard_df["predicted_sentiment"]
-        .value_counts()
-        .reset_index()
+            dashboard_df["predicted_sentiment"]
+            .value_counts()
+            .reset_index()
         )
 
         sentiment_counts.columns = [
-       "sentiment",
-       "review_count"
+            "sentiment",
+            "review_count"
         ]
+
+        # ----------------------------------------------------
+        # TOTALS
+        # ----------------------------------------------------
 
         total = len(dashboard_df)
 
         positive = (
-            sentiment_counts
-            .loc[
+            sentiment_counts.loc[
                 sentiment_counts["sentiment"] == "Positive",
                 "review_count"
-            ]
-            .sum()
+            ].sum()
         )
 
         negative = (
-            sentiment_counts
-            .loc[
+            sentiment_counts.loc[
                 sentiment_counts["sentiment"] == "Negative",
                 "review_count"
-            ]
-            .sum()
+            ].sum()
         )
 
         neutral = (
-            sentiment_counts
-            .loc[
+            sentiment_counts.loc[
                 sentiment_counts["sentiment"] == "Neutral",
                 "review_count"
-            ]
-            .sum()
+            ].sum()
         )
+
+        # ----------------------------------------------------
+        # KPI CARDS
+        # ----------------------------------------------------
 
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
+
             st.metric(
                 "Total Reviews",
                 f"{total:,}"
             )
 
         with col2:
+
             st.metric(
                 "Positive",
                 f"{positive / total * 100:.2f}%"
             )
 
         with col3:
+
             st.metric(
                 "Negative",
                 f"{negative / total * 100:.2f}%"
             )
 
         with col4:
+
             st.metric(
                 "Neutral",
                 f"{neutral / total * 100:.2f}%"
             )
 
-        st.subheader("Sentiment Distribution")
+        # ----------------------------------------------------
+        # SENTIMENT DISTRIBUTION
+        # ----------------------------------------------------
+
+        st.subheader("📊 Sentiment Distribution")
 
         fig = px.bar(
             sentiment_counts,
@@ -575,18 +609,28 @@ elif page == "Dashboard":
             textposition="outside"
         )
 
+        fig.update_layout(
+            xaxis_title="Sentiment",
+            yaxis_title="Number of Reviews"
+        )
+
         st.plotly_chart(
             fig,
             use_container_width=True
         )
 
-        st.subheader("Sentiment Percentage")
+        # ----------------------------------------------------
+        # SENTIMENT PERCENTAGE
+        # ----------------------------------------------------
+
+        st.subheader("🥧 Sentiment Percentage")
 
         percentage_df = sentiment_counts.copy()
 
         percentage_df["percentage"] = (
             percentage_df["review_count"]
-            / total * 100
+            / total
+            * 100
         )
 
         fig2 = px.pie(
@@ -602,10 +646,31 @@ elif page == "Dashboard":
             use_container_width=True
         )
 
-    else:
+        # ----------------------------------------------------
+        # ANALYZED REVIEW DATA
+        # ----------------------------------------------------
 
-        st.error(
-            "Dashboard dataset was not found."
+        st.subheader("📋 Analyzed Reviews")
+
+        st.dataframe(
+            dashboard_df,
+            use_container_width=True,
+            height=400
+        )
+
+        # ----------------------------------------------------
+        # DOWNLOAD ANALYZED DATA
+        # ----------------------------------------------------
+
+        csv_data = dashboard_df.to_csv(
+            index=False
+        ).encode("utf-8")
+
+        st.download_button(
+            label="⬇️ Download Analyzed Reviews",
+            data=csv_data,
+            file_name="reviewiq_analyzed_reviews.csv",
+            mime="text/csv"
         )
 
 # ============================================================
