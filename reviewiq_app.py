@@ -71,8 +71,8 @@ st.markdown("""
 @st.cache_resource
 def load_model():
     tfidf = joblib.load(MODEL_PATH / "tfidf_vectorizer.joblib")
-    model = joblib.load(MODEL_PATH / "sentiment_model.joblib")
-    return tfidf, model
+    sentiment_model = joblib.load(MODEL_PATH / "sentiment_model.joblib")    
+    return tfidf,sentiment_model
 
 tfidf, sentiment_model = load_model()
 
