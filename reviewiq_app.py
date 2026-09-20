@@ -12,8 +12,11 @@ from pathlib import Path
 # PATHS
 # ============================================================
 
-PROJECT_PATH = Path("/content/drive/MyDrive/ReviewIQ_Project")
-MODEL_PATH = PROJECT_PATH
+PROJECT_PATH = Path(__file__).resolve().parent
+
+TFIDF_PATH = PROJECT_PATH / "tfidf_vectorizer.joblib"
+SENTIMENT_MODEL_PATH = PROJECT_PATH / "sentiment_model.joblib"
+
 RESULTS_PATH = PROJECT_PATH / "results"
 
 # ============================================================
@@ -70,9 +73,9 @@ st.markdown("""
 
 @st.cache_resource
 def load_model():
-    tfidf = joblib.load(MODEL_PATH / "tfidf_vectorizer.joblib")
-    sentiment_model = joblib.load(MODEL_PATH / "sentiment_model.joblib")    
-    return tfidf,sentiment_model
+    tfidf = joblib.load(TFIDF_PATH)
+    sentiment_model = joblib.load(SENTIMENT_MODEL_PATH)
+    return tfidf, sentiment_model
 
 tfidf, sentiment_model = load_model()
 
