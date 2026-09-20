@@ -13,7 +13,7 @@ from pathlib import Path
 # ============================================================
 
 PROJECT_PATH = Path("/content/drive/MyDrive/ReviewIQ_Project")
-MODEL_PATH = PROJECT_PATH / "models"
+MODEL_PATH = PROJECT_PATH
 RESULTS_PATH = PROJECT_PATH / "results"
 
 # ============================================================
