@@ -283,9 +283,9 @@ elif page == "Analyze Reviews":
 
         file_name = uploaded_file.name.lower()
 
-        # ----------------------------------------------------
-        # CSV
-        # ----------------------------------------------------
+        # ====================================================
+        # CSV ANALYSIS
+        # ====================================================
 
         if file_name.endswith(".csv"):
 
@@ -317,7 +317,8 @@ elif page == "Analyze Reviews":
             )
 
             text_columns = [
-                col for col in df.columns
+                col
+                for col in df.columns
                 if df[col].dtype == "object"
             ]
 
@@ -328,11 +329,14 @@ elif page == "Analyze Reviews":
                     text_columns
                 )
 
-                if st.button("Analyze CSV"):
+                if st.button(
+                    "🔍 Analyze CSV",
+                    key="analyze_csv"
+                ):
 
                     working_df = df.copy()
 
-                    working_df["clean_text"] = (
+                    working_df["review_text"] = (
                         working_df[selected_column]
                         .fillna("")
                         .astype(str)
@@ -340,10 +344,19 @@ elif page == "Analyze Reviews":
 
                     results = []
 
-                    for text in working_df["clean_text"]:
+                    progress_bar = st.progress(0)
 
-                        sentiment, confidence, probabilities = \
+                    total_reviews = len(
+                        working_df
+                    )
+
+                    for i, text in enumerate(
+                        working_df["review_text"]
+                    ):
+
+                        sentiment, confidence, probabilities = (
                             predict_sentiment(text)
+                        )
 
                         results.append({
                             "predicted_sentiment": sentiment,
@@ -356,102 +369,262 @@ elif page == "Analyze Reviews":
                                 probabilities[2] * 100
                         })
 
-                    results_df = pd.DataFrame(results)
+                        progress_bar.progress(
+                            (i + 1) / total_reviews
+                        )
+
+                    results_df = pd.DataFrame(
+                        results
+                    )
 
                     output_df = pd.concat(
                         [
-                            working_df.reset_index(drop=True),
+                            working_df.reset_index(
+                                drop=True
+                            ),
                             results_df
                         ],
                         axis=1
                     )
 
-                    st.session_state["analysis_df"] = output_df
+                    st.session_state[
+                        "analysis_df"
+                    ] = output_df
+
+                    st.session_state[
+                        "analysis_source"
+                    ] = "CSV"
 
                     st.success(
-                        "CSV analysis completed successfully!"
+                        "✅ CSV analysis completed successfully!"
                     )
 
-        # ----------------------------------------------------
-        # PDF
-        # ----------------------------------------------------
+                    st.info(
+                        "Go to **Dashboard** to view "
+                        "the analysis."
+                    )
+
+            else:
+
+                st.warning(
+                    "No text column was found in the CSV."
+                )
+
+        # ====================================================
+        # PDF ANALYSIS
+        # ====================================================
 
         elif file_name.endswith(".pdf"):
 
             file_bytes = uploaded_file.read()
 
-            extracted_text = extract_pdf_text(file_bytes)
+            extracted_text = extract_pdf_text(
+                file_bytes
+            )
 
             st.success(
                 "PDF text extracted successfully!"
             )
 
             st.text_area(
-                "Extracted Text",
+                "Extracted Text Preview",
                 extracted_text[:5000],
                 height=250
             )
 
-            if st.button("Analyze PDF"):
+            st.write(
+                "Each non-empty line will be treated "
+                "as a separate review."
+            )
 
-                sentiment, confidence, probabilities = \
-                    predict_sentiment(extracted_text)
+            if st.button(
+                "🔍 Analyze PDF",
+                key="analyze_pdf"
+            ):
 
-                st.subheader("PDF Sentiment")
+                # Split PDF into individual reviews
+                review_lines = [
+                    line.strip()
+                    for line in extracted_text.splitlines()
+                    if line.strip()
+                ]
 
-                col1, col2 = st.columns(2)
+                # Remove extremely short lines
+                review_lines = [
+                    line
+                    for line in review_lines
+                    if len(line) >= 10
+                ]
 
-                with col1:
-                    st.metric(
-                        "Sentiment",
-                        sentiment
+                if len(review_lines) == 0:
+
+                    st.warning(
+                        "No review text could be detected "
+                        "in the PDF."
                     )
 
-                with col2:
-                    st.metric(
-                        "Confidence",
-                        f"{confidence:.2f}%"
+                else:
+
+                    results = []
+
+                    progress_bar = st.progress(0)
+
+                    total_reviews = len(
+                        review_lines
                     )
 
-        # ----------------------------------------------------
-        # TXT
-        # ----------------------------------------------------
+                    for i, text in enumerate(
+                        review_lines
+                    ):
+
+                        sentiment, confidence, probabilities = (
+                            predict_sentiment(text)
+                        )
+
+                        results.append({
+                            "review_text": text,
+                            "predicted_sentiment": sentiment,
+                            "sentiment_confidence": confidence,
+                            "negative_probability":
+                                probabilities[0] * 100,
+                            "neutral_probability":
+                                probabilities[1] * 100,
+                            "positive_probability":
+                                probabilities[2] * 100
+                        })
+
+                        progress_bar.progress(
+                            (i + 1) / total_reviews
+                        )
+
+                    output_df = pd.DataFrame(
+                        results
+                    )
+
+                    st.session_state[
+                        "analysis_df"
+                    ] = output_df
+
+                    st.session_state[
+                        "analysis_source"
+                    ] = "PDF"
+
+                    st.success(
+                        f"✅ PDF analysis completed — "
+                        f"{len(output_df):,} reviews analyzed."
+                    )
+
+                    st.info(
+                        "Go to **Dashboard** to view "
+                        "the analysis."
+                    )
+
+        # ====================================================
+        # TXT ANALYSIS
+        # ====================================================
 
         elif file_name.endswith(".txt"):
 
             file_bytes = uploaded_file.read()
 
-            extracted_text = extract_txt_text(file_bytes)
+            extracted_text = extract_txt_text(
+                file_bytes
+            )
 
             st.success(
                 "TXT file loaded successfully!"
             )
 
             st.text_area(
-                "Review Text",
+                "Review Text Preview",
                 extracted_text[:5000],
                 height=250
             )
 
-            if st.button("Analyze TXT"):
+            st.write(
+                "Each non-empty line will be treated "
+                "as a separate review."
+            )
 
-                sentiment, confidence, probabilities = \
-                    predict_sentiment(extracted_text)
+            if st.button(
+                "🔍 Analyze TXT",
+                key="analyze_txt"
+            ):
 
-                st.subheader("TXT Sentiment")
+                # Split TXT into individual reviews
+                review_lines = [
+                    line.strip()
+                    for line in extracted_text.splitlines()
+                    if line.strip()
+                ]
 
-                col1, col2 = st.columns(2)
+                review_lines = [
+                    line
+                    for line in review_lines
+                    if len(line) >= 10
+                ]
 
-                with col1:
-                    st.metric(
-                        "Sentiment",
-                        sentiment
+                if len(review_lines) == 0:
+
+                    st.warning(
+                        "No review text could be detected "
+                        "in the TXT file."
                     )
 
-                with col2:
-                    st.metric(
-                        "Confidence",
-                        f"{confidence:.2f}%"
+                else:
+
+                    results = []
+
+                    progress_bar = st.progress(0)
+
+                    total_reviews = len(
+                        review_lines
+                    )
+
+                    for i, text in enumerate(
+                        review_lines
+                    ):
+
+                        sentiment, confidence, probabilities = (
+                            predict_sentiment(text)
+                        )
+
+                        results.append({
+                            "review_text": text,
+                            "predicted_sentiment": sentiment,
+                            "sentiment_confidence": confidence,
+                            "negative_probability":
+                                probabilities[0] * 100,
+                            "neutral_probability":
+                                probabilities[1] * 100,
+                            "positive_probability":
+                                probabilities[2] * 100
+                        })
+
+                        progress_bar.progress(
+                            (i + 1) / total_reviews
+                        )
+
+                    output_df = pd.DataFrame(
+                        results
+                    )
+
+                    st.session_state[
+                        "analysis_df"
+                    ] = output_df
+
+                    st.session_state[
+                        "analysis_source"
+                    ] = "TXT"
+
+                    st.success(
+                        f"✅ TXT analysis completed — "
+                        f"{len(output_df):,} reviews analyzed."
+                    )
+
+                    st.info(
+                        "Go to **Dashboard** to view "
+                        "the analysis."
                     )
 
 
