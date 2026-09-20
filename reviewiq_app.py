@@ -479,32 +479,32 @@ elif page == "Dashboard":
             f"{len(dashboard_df):,} reviews"
         )
 
-      # Convert numeric sentiment labels to readable names
-    label_map = {
-    0: "Negative",
-    1: "Neutral",
-    2: "Positive",
-    "0": "Negative",
-    "1": "Neutral",
-    "2": "Positive"
-    }
+         # Convert numeric sentiment labels to readable names
+        label_map = {
+        0: "Negative",
+        1: "Neutral",
+        2: "Positive",
+       "0": "Negative",
+       "1": "Neutral",
+       "2": "Positive"
+        }
 
-   dashboard_df["predicted_sentiment"] = (
-    dashboard_df["predicted_sentiment"]
-    .map(label_map)
-    .fillna(dashboard_df["predicted_sentiment"])
-  )
+       dashboard_df["predicted_sentiment"] = (
+       dashboard_df["predicted_sentiment"]
+       .map(label_map)
+       .fillna(dashboard_df["predicted_sentiment"])
+        )
 
-  sentiment_counts = (
-    dashboard_df["predicted_sentiment"]
-    .value_counts()
-    .reset_index()
-  )
+        sentiment_counts = (
+        dashboard_df["predicted_sentiment"]
+        .value_counts()
+        .reset_index()
+        )
 
- sentiment_counts.columns = [
-    "sentiment",
-    "review_count"
-  ]
+        sentiment_counts.columns = [
+       "sentiment",
+       "review_count"
+        ]
 
         total = len(dashboard_df)
 
