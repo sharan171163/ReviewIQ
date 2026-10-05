@@ -15,7 +15,7 @@ from pathlib import Path
 PROJECT_PATH = Path(__file__).resolve().parent
 
 TFIDF_PATH = PROJECT_PATH / "tfidf_vectorizer.joblib"
-SENTIMENT_MODEL_PATH = PROJECT_PATH / "sentiment_model.joblib"
+SENTIMENT_MODEL_PATH = PROJECT_PATH / "linear_svm_sentiment_model.joblib"
 
 RESULTS_PATH = PROJECT_PATH / "results"
 
@@ -112,7 +112,11 @@ def predict_sentiment(text):
 
     prediction = sentiment_model.predict(vector)[0]
 
-    probabilities = sentiment_model.predict_proba(vector)[0]
+    # LinearSVC does not provide calibrated probabilities.
+    # Convert decision-function margins to relative scores for display.
+    decision_scores = sentiment_model.decision_function(vector)[0]
+    exp_scores = np.exp(decision_scores - np.max(decision_scores))
+    probabilities = exp_scores / exp_scores.sum()
 
     label_map = {
         0: "Negative",
@@ -184,7 +188,7 @@ page = st.sidebar.radio(
 st.sidebar.markdown("---")
 
 st.sidebar.info(
-    "ReviewIQ uses a trained TF-IDF + Logistic Regression "
+    "ReviewIQ uses a trained TF-IDF + Linear SVM "
     "sentiment model to classify customer reviews."
 )
 
@@ -232,15 +236,15 @@ if page == "Single Review":
                     "Neutral",
                     "Positive"
                 ],
-                "Probability": probabilities * 100
+                "Relative Score": probabilities * 100
             })
 
             fig = px.bar(
                 probability_df,
                 x="Sentiment",
-                y="Probability",
+                y="Relative Score",
                 text="Probability",
-                title="Sentiment Probabilities"
+                title="Sentiment Scores"
             )
 
             fig.update_traces(
@@ -249,7 +253,7 @@ if page == "Single Review":
             )
 
             fig.update_layout(
-                yaxis_title="Probability (%)",
+                yaxis_title="Relative Score (%)",
                 xaxis_title=""
             )
 
@@ -362,11 +366,11 @@ elif page == "Analyze Reviews":
                         results.append({
                             "predicted_sentiment": sentiment,
                             "sentiment_confidence": confidence,
-                            "negative_probability":
+                            "negative_score":
                                 probabilities[0] * 100,
-                            "neutral_probability":
+                            "neutral_score":
                                 probabilities[1] * 100,
-                            "positive_probability":
+                            "positive_score":
                                 probabilities[2] * 100
                         })
 
@@ -486,11 +490,11 @@ elif page == "Analyze Reviews":
                             "review_text": text,
                             "predicted_sentiment": sentiment,
                             "sentiment_confidence": confidence,
-                            "negative_probability":
+                            "negative_score":
                                 probabilities[0] * 100,
-                            "neutral_probability":
+                            "neutral_score":
                                 probabilities[1] * 100,
-                            "positive_probability":
+                            "positive_score":
                                 probabilities[2] * 100
                         })
 
@@ -594,11 +598,11 @@ elif page == "Analyze Reviews":
                             "review_text": text,
                             "predicted_sentiment": sentiment,
                             "sentiment_confidence": confidence,
-                            "negative_probability":
+                            "negative_score":
                                 probabilities[0] * 100,
-                            "neutral_probability":
+                            "neutral_score":
                                 probabilities[1] * 100,
-                            "positive_probability":
+                            "positive_score":
                                 probabilities[2] * 100
                         })
 
@@ -855,5 +859,5 @@ st.markdown("---")
 
 st.caption(
     "ReviewIQ | Customer Review Analytics | "
-    "TF-IDF + Logistic Regression"
+    "TF-IDF + Linear SVM"
 )
